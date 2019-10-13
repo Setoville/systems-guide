@@ -44,18 +44,20 @@
 
 **nice**: Amount that a process will yield. Lower nice = higher priority. -20 < nice < 20
 
-# System Calls
+# LINUX System Calls
 
 ## Process System Calls
 
 **fork()** creates a duplicate of the currently running process. The return value of **fork()** is 0 for the child, and non-zero for the parent.
 
-- Expensive to copy all data of a process
-- The **memory table** is copied rather than the actual memory. Entries in the new memory table are marked **copy-on-write**. 
-
-**exec()** loads a new program.
-- Replace/discard address space, re-load with a new executable. 
-- **if (fork() == 0), exec ("games/pong")** is a common practice
+**exec()** Replace current program with a new program.
+- Replace/discard entire address space, re-load with new sections.
+  - New code section
+  - No heaps
+  - No stack
+  - Environment and file descriptors are **maintained**
+    - Copied to a temp space, then copied into the new space.
+- **if (fork() == 0), exec ("games/pong")** is a common practice.
 
 **clone()** creates a child process.
 - Fork is for processes, clone is for threads.
@@ -121,11 +123,25 @@
 **close()** close a file descriptor. 
 
 **mmap()** maps files or devices into memory.
+- Allocate memory in a process
+- Adds some pages into the process address space
+- Maps those pages to resolve to addresses in physical memory
+- **address = mmap(5000)** 
+  - Makes the OS find a contiguous chunk of 5000 bytes
+    - Allocates **pages**, not individual bytes.
+  - Returns location of the start of the chunk.
+- The OS keeps track of all allocated memory!
+- Allocation is a tricky problem! Solutions to alloc/dealloc and defragmentation are hard.
+
+**munmap()**
+- De-allocates memory pages from address space
+- munmap(address)
 
 **dup()** duplicates a file descriptor.
 
 **read()** reads from a file descriptor.
 - readv for vector.
+
 **write()** writes to a file descriptor.
 - writev for vector.
 
@@ -136,7 +152,7 @@
 **brk()** changes data segment side.
 - Change location of the program break; defines the end of the process' data segment.
 
-# Network System Calls
+## Network System Calls
 
 **socket()**
 **connect()**
@@ -144,7 +160,7 @@
 
 interrupts
 
-# Processes
+# LINUX Processes
 
 - All processes are created by another process
 ## Types of Processes
@@ -180,13 +196,22 @@ interrupts
 - **Zombie**
   - Process is dead
   - Entry still exists in the process table
-## Process creation
+  - Return value has not been **reaped**
+  
+## Process creation, fork() and exec()
+
 1. Allocate a slot in the process table
-1. Assign a unique PID to the child process
-1. Copy of the process image to the parent. No shared memory
-1. Increments counters for any files owned by the parent.
-1. New process is in Ready To Run State
-1. Return value of 0 goes to child process
+2. Assign a unique PID to the child process
+3. OS makes a copy of the process image of the parent.
+4. Increments counters for any files owned by the parent.
+5. New process is in Ready To Run State
+6. Return value of 0 goes to child process
+- **Copy-on-write**
+  - It is expensive to copy all data of a process.
+  - The **memory table** is copied rather than the actual content in memory.
+  - Entries in the new memory table are marked **copy-on-write**.
+  - As soon as a process writes to that page in memory, the page is copied and the memory table is updated.
+
 ## Process control block
 - Central process management
 - Datastructure containing everything the OS needs to know about a program.
@@ -199,12 +224,13 @@ interrupts
   - Register Data*
     - Store current values of the registers. 
     - Also called context data.
-  - Memory Pointers. 
-    - Pointers to the code
+  - Memory Pointers and address code
     - Data associated with process
     - Memory that OS allocated by request
   - I/O Status Information. 
     - Outstanding requests, files or I/O devices currently assigned to process
+    - File descriptors
+    - Current and root directory
   - Accounting information
     - Process use of resources.
   
@@ -218,22 +244,76 @@ interrupts
   - No need to context switch; don't have to swap out memory tables of current process
   - Able to be interrupted!
 
+## Environment (env variables)
+- The point of this is to **pass down** from one process to the next.
+- Stored in the process itself, somewhere on the heap.
+- Address of this location is stored as a variable in data section.
 
-## Context Switching
+
+## Context Switching and Process Swapping
 - Program counter and Register data in the PCB are updated when a system call or process switch occurs
 - Upon an interrupt or system call:
   - Save the state of the process into the PCB.
   - Re-load state of the new process from its PCB.
 
+How does a signal get sent to a process?
+
 Process table
 - Process signal mask
 
+## Threads
+- When a process runs, it has 1 thread by default
+  - 1 code pointer, 1 execution stack
+- Multiple threads; each have their own execution stack and code pointer.
+- Share the same address space
+  - Heap space can be seen by all threads
+
 ## Inter Process Communication
 
-# Hard Drive and Memory
-# Files
+# LINUX Users and Permissions and Namespacing
+- Every process gets a User ID
+- User accounts are associated with permissions
+- Superuser/root user gets UID=0
+  - System calls will never fail
+- Each file and directory is owned by a single user
+- By default, fork and exec will pass down the user
+- Sample login flow:
+  - PID=1,UID=0 (init)
+  - fork, exec
+  - PID=2,UID=0 (login)
+  - fork, setuid, exec
+  - PID=3,UID=1780 (shell)
+- User groups
+  - A user may belong to many user groups
+  - Permissions may be assigned to each group
+  - Each file and directory is owned by a single group, as well as a user
+  - rwxrwxrwx
+
+## Permissions
+- File permissions
+  - Read: can read bytes of a file.
+  - Write: can modify bytes of a file.
+  - Execute: Can exec a file. Without this, exec call would fail.
+- Directory permissions
+  - Read: Can get names of files.
+  - Write: Can add/remove/rename files.
+  - Execute: Can use in file paths. Any system call with this directory NOT AS THE LAST DIRECTORY will fail
+  
+# LINUX Files
 Directory entries
 hard vs soft links
+
+# Hard Drive and Memory
+
+## Page Tables
+
+- Maps virtual memory to physical addresses
+- Pages in a program's memory are mapped to portions in RAM and sometimes in hard drive, all over the place.
+- The CPU's Memory Management Unit stores a cache of recently used mappings.
+  - Translation Lookaside Buffer (TLB)
+
+
+
 
 ## Device Files
 
@@ -275,7 +355,7 @@ Nobody really uses signal() anymore. Depricated.
 Job control
 
 # Networking
-
+socket is one end of a network connection.
 # Web servers
 
 # Databases
