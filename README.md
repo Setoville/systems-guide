@@ -152,10 +152,16 @@
 **brk()** changes data segment side.
 - Change location of the program break; defines the end of the process' data segment.
 
-## Network System Calls
+## Networking System Calls
 
 **socket()**
-**connect()**
+- Socket is an endpoint for communication
+- Returns a FD that refres to the endpoint
+
+**connect()** initiates a connection on a socket
+
+**listen()** listens for connections on a socket
+
 **bind()** binds a name to a socket. Assigns the specified socket address
 
 interrupts
@@ -300,32 +306,34 @@ Process table
   - Execute: Can use in file paths. Any system call with this directory NOT AS THE LAST DIRECTORY will fail
   
 # LINUX Files
+
+## File read, write and descriptors
+- Each file has a file descriptor
+- Two steps for reading and writing.
+  - I/O for a hard drive is a bottleneck
+  - Data is copied to a _write buffer_ or _read buffer_, in memory, controlled by OS
+  - OS writes from  _buffer_ to its destination
+- NO verification of written data (no acks!)
+- Each file descriptor has a marker of where currently reading/writing.
+- Read buffer
+  - Common practice: read portions in the file that follows!
+  - Look ahead, read more than is requested so subsequent calls read from buffer
+
+## Directories 
+## inodes
 Directory entries
 hard vs soft links
 
-# Hard Drive and Memory
 
-## Page Tables
-
-- Maps virtual memory to physical addresses
-- Pages in a program's memory are mapped to portions in RAM and sometimes in hard drive, all over the place.
-- The CPU's Memory Management Unit stores a cache of recently used mappings.
-  - Translation Lookaside Buffer (TLB)
-
-
-
-
-## Device Files
-
-
-# Signals (Software Interrupts)
+# LINUX Signals (Software Interrupts)
 
 - **6. SIGABRT**: abort, abnormal termination.
 - **8. SIGFPE**: floating point exception.
 - **4. SIGILL**: illegal, invalid instruction.
 - **11. SIGSEGV**: Segmentation Violation, invalid memory access.
-- **5. SIGTRAP**:
+- **5. SIGTRAP**: trap. sent to a process when an exception or trap occurs.
 - **2. SIGINT**: Interrupt. 
+  - CTRL+C on terminal
   - Default behaviour is to terminate.
   - Orderly, graceful shutdown.
   - User-initiated happy termination.
@@ -350,14 +358,101 @@ Signal handlers can be specified for all signals except **SIGKILL** and **SIGSTO
 
 Nobody really uses signal() anymore. Depricated.
 
-# Terminals and Shells
+# LINUX Terminals and Shells
 
 Job control
 
-# Networking
+# LINUX Networking
+- Literally just another file.
+- Sockets are similar to pipes.
+- Attach a socket to your program, just like attaching a mailbox to your house.
+- Bidirectional with stream sockets, unidirectional with datagram sockets
+- /etc/hosts is an internal DNS lookup
+what is CURL, wget?
+
+**traceroute()** 
+- Send ICMP packet with TTL = 1, 2, 3
+- When packet reaches TTL = 0, router reports back to origin
+- Allows traceroute() to trace a network call
 socket is one end of a network connection.
+
+**ping()**
+- Tests reachability of hosts on an IP network
+- Sends an ICMP packet, and waits for an ICMP reply.
+
+**ifconfig()**
+- Lists all network interfaces
+  - All associated IP addresses
+- lo is the local loopback (localhost!)
+
+**tcpdump()**
+- Command line packet sniffer
+- _tcpdump -c 10_ to capture 10 packets.
+- _tcpdump -c 10 -i eth0_ to capture 10 packets on eth0 interface.
+
+**netstat()** (network statistics)
+- View active connections and routes
+- _netstat -i en0_ for interface en0
+- _netstat -r_ routing tables
+- _netstat -c_ continuous output for all connections (TCP/UDP)
+- _netstat -a_ for active connections
+- _netstat -at_ for active TCP connections. _-au_ for active UDP connections.
+
+## LINUX Sockets (Level 4)
+- **Client side**
+  - Create a socket with _socket()_ system call.
+  - Connect to the socket of the address of the server with _connect()_.
+  - Send and receive data. _read()_ and _write()_ work.
+- **Server side**
+  - Create a socket with _socket()_ system call.
+  - Bind socket to an address with _bind()_.
+    - Address is a port number on the host machine.
+  - Listen for connections with _listen()_.
+  - Accept connection with _accept()_.
+  - Send and receive data.
+
+# General Networking
+**NAT**: Network Address Translation
+- Allows networks to be hierarchical 
+**DNS**: Domain Name Server 
+- DNS server holds records of what domains point to what IP addresses
+**Router**: 
+**Switch**: Link-layer networking device
+- **ARP**: Address Resolution Protocol
+  - Each node gets an ARP table
+- **Store-forward**
+  - Each switch gets a switch table
+  - Floods!
+
+TCP windowing
+  
+## Special IP addresses:
+- 127.0.0.1 is _localhost_
+- Privat internets, not publicly routable VIA global internet
+  - 192.168.0.0/16
+  - 10.0.0.0/8
+  
+## Special ports:
+- 20 FTP
+- 22 SSH
+- 80 HTTP
+- 443 HTTPS
+
+wifi and ethernet protocols
+
+# Hard Drive and Memory
+
+## Page Tables
+
+- Maps virtual memory to physical addresses
+- Pages in a program's memory are mapped to portions in RAM and sometimes in hard drive, all over the place.
+- The CPU's Memory Management Unit stores a cache of recently used mappings.
+  - Translation Lookaside Buffer (TLB)
+
+## LINUX Device Files
+
 # Web servers
 
 # Databases
 
-# troubleshooting
+# LINUX troubleshooting
