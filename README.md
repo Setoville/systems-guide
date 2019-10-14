@@ -149,7 +149,7 @@
 
 **poll()** wait for some event on a file descriptor.
 
-**mount()** mounts filesystem.
+**mount()** mounts filesystem. Logically attach a filesystem to the main filesystem.
 
 **brk()** changes data segment side.
 - Change location of the program break; defines the end of the process' data segment.
@@ -363,6 +363,14 @@ interrupts
   - Common practice: read portions in the file that follows!
   - Look ahead, read more than is requested so subsequent calls read from buffer
 
+## Superblock
+  - Record of characteristics of a filesystem
+    - size, block size, size and location of inode tables
+  - A request to access any file requires access to the filesystem's superblock.
+  - Crucial! Backups are made and linux also maintains a copy of its superblock in memory.
+  - The basic linux filesystem type 
+
+
 ## Directories 
 - Another type of file, users cannot update directories directly.
 - Sequence of directory entries. Not sorted
@@ -437,7 +445,7 @@ Nobody really uses signal() anymore. Depricated.
 # LINUX Terminals and Shells
 
 Job control
-
+producer consumer problem?
 # LINUX Networking
 - Literally just another file.
 - Sockets are similar to pipes.
@@ -512,14 +520,54 @@ socket is one end of a network connection.
 - DNS server holds records of what domains point to what IP addresses
 **Router**: 
 
-**Switch**: Link-layer networking device
-- **ARP**: Address Resolution Protocol
-  - Each node gets an ARP table
-  - Relates IP addresses to MAC addresses (Medium Access Control)
-- **Store-forward**
-  - Each switch gets a switch table
-  - Floods!
-  
+
+
+## Link Layer
+- Flow control: Pacing between adjacent sending/receing nodes
+- Error detection and Correction
+- Half-duplex and full-duplex
+- In each host, a Network Interface Card (NIC)
+### Error Detection
+- Single bit parity to detect errors in single bits.
+- 2D bit parity to detect and correct single bit errors.
+  - Check odd parity up-down, even parity left-right
+- Cyclic Redundancy Check
+  - "Long division". Pick a G that both src and dst know
+  - Divide message D with G to get R, send DR.
+  - dst divides DR with G, and checks if it matches R.
+
+### Multiple Access Protocols
+- Channel partitioning, random access and "taking turns"
+- TDMA: Time-division multiple access
+- FDMA: Frequency-division multiple access
+- Random access MAC protocol.
+  - CSMA/CD. Carrier sense, multiple access, collision detection
+  - CSMA/CA. Carrier sense, multiple access, collision avoidance.
+- **CSMA**: Listen before transmit
+  - If channel is idle, transmit, else don't transmit.
+- **Ethernet CSMA/CD**:
+  - NIC receives datagram from network layer, creates a frame
+  - If NIC senses channel idle, begin trasmission
+  - If, during transmission, NIC senses a transmission, abort and jam
+  - NIC enters **binary backoff**
+- **Ethernet CSMA/CA**:
+  - If NIC senses channel busy
+  - Start random backoff time.
+  - While channel is busy, timer is frozen
+  - Timer counts down when channel idle
+  - Transmit when timer == 0
+  - If no ACK, increase random bakcoff interval, repeat sense.
+- **Switch**: Link-layer networking device
+  - **ARP**: Address Resolution Protocol
+    - Each node gets an ARP table
+    - Relates IP addresses to MAC addresses (Medium Access Control)
+  - **Store-forward**
+    - Each switch gets a switch table
+    - Floods!
+### Mac addresses and ARP
+- 32-bit IP address, 48-bit MAC address.
+- **ARP**:
+
 **DHCP**:
 - Assigns unique IP addresses to hosts on a network.
 1. DHCP-Discover. Broadcast to all hosts on the network.
@@ -610,13 +658,85 @@ wifi and ethernet protocols
   - Splits up databases by function. There is no central master to serializa writes.
 - **Sharding**
   - Splits up data such that each database handles a unique subset of data
-
 - **Denormaliation**
   - Improve **read** performance by adding additional redundant information
   - Trades write time for read time
 
+
+## Normalization
+  - Removing redundant data from a database by splitting the table in a well-defined manner to maintain data integrity.
+  - First normal form (1NF): When all entities of the table contain unique or atomic values.
+  - Second normal form (2NF): If it is in 1NF and all non-key attributes of the table are fully dependant on the primary key.
+  - Third normal form (3NF): If it is in 2NF and every non-key attribute is not **transitively dependent** on the primary key.
+  - BCNF (3.5NF): No overlapping candidate keys.
+
+## Locking (The readers-writers problem)
+- Exclusive lock. 1 actor currently using the system. Nobody else can read/write.
+- Shared lock. Many actors may read. Only when all the shared locks are gone, may an exclusive lock be applied.
+
+## Data Indepedence
+  - **Physical Data Independence**: Modifies schema at physical level without affecting schema at the logical level.
+    - Changing indexing strategy without needing to make changes without logical level.
+  - **Logical Data Independence**: Modifies schema at logical (conceptual) level without affecting or causing changes at the view (application) level.
+    - Adding new entities or relationships to this schema should not need to have to re-write existing applications.
+
+## Functional Dependency
+- A relation is in functional dependency when one attribute uniquely defines another attribute.
+
+## SQL
+- **ACID**
+  - Atomicity
+  - Consistency
+  - Isolation
+  - Durabilirt
+- A primary key is a field in a table which uniquely identifies each row/record in a table.
+- Primary keys must be unique.
+- A **superkey** is a set of attributes upon which all attributes are functionally dependent. No two rows can have the same value of superkey attributes.
+- A **candidate key** is a minimal superkey. Superkey without redundant information.
+- A **foreign key** is a field in one table that uniquely identifies a row in another table.
+- A **Stored procedure** is a function that contains a set of operations compiled together.
+- When multiple fields are used as a primary, this is called a composite key.
+- SQL is derived from the **relational model**: All data is represented in terms of tuples, and grouped into relations.
+
+## NoSQL
+- Favour availability and scalability over consistency
+- **BASE**
+  - Basically Available
+  - Soft State
+  - Eventual Consistency
+- **Key-value store**
+  - O(1) reads and writes
+  - High performance for simple data models
+  - Redis, memcached
+  - Usually 1 level deep. Less flexible
+- **Document store**
+  - JSON, XML, Binary
+  - Documents organized by collections, tags, metadata, directories
+  - Documents may have different keys.
+  - More flexiblity over KVS.
+  - MongoDB, DynamoDB.
+- **Graph database**
+  - Each node is a record, each edge is a relationship
+  - Optimized to represent complex relations.
+  - Many foreign keys and many-to-many relationships.
+- **Wide-column store**
+  - Nested map.
+  - CassandraDB.
+
 ## SQL vs NoSQL
-- **NoSQL**
+- SQL for:
+  - consistency, guarantees.
+  - complex queries
+  - vertical scaling
+  - structured data (schema)
+  - high transaction-based applications.
+- NoSQL for:
+  - availability and scalability.
+  - Simple queries that are FAST.
+  - horizontal scaling
+  - unstructured data
+  - Hierarchical data storage.
+
 
 # Security
 
