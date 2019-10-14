@@ -24,11 +24,13 @@
 
 **tail**: Show last N lines. -f to slow-update
 
-**grep**: Global Regex Print. Find regex in stdin
+**grep**: Global Regex Print. Find regex in stdin.
 
-**wc**: word count
+**wc**: word count of stdin.
 
 **sudo**: Superuser Do.
+
+**diff**: finds the line diff of two files.
 
 ## Process commands
 
@@ -205,7 +207,6 @@ interrupts
   - Return value has not been **reaped**
   
 ## Process creation, fork() and exec()
-
 1. Allocate a slot in the process table
 2. Assign a unique PID to the child process
 3. OS makes a copy of the process image of the parent.
@@ -239,7 +240,7 @@ interrupts
     - Current and root directory
   - Accounting information
     - Process use of resources.
-  
+
 ## System Calls in Processes
 - The primary thing that defines an OS is what system calls are made available.
 - System calls are  functions in OS codethat programs can invoke with a special instruction.
@@ -264,8 +265,7 @@ interrupts
 
 How does a signal get sent to a process?
 
-Process table
-- Process signal mask
+]- Process signal mask
 
 ## Threads
 - When a process runs, it has 1 thread by default
@@ -273,8 +273,40 @@ Process table
 - Multiple threads; each have their own execution stack and code pointer.
 - Share the same address space
   - Heap space can be seen by all threads
+- Threads live on a process.
+- Thread Control Block
+  - Describes an execution context, PCB describes an environment context.
+  - Pointer to the PCB of the process that the thread lives on.
+  - Also has program counter?
+
 
 ## Inter Process Communication
+- Why?
+  - Information sharing
+  - Computation sub-tasks
+- Process may be **independent** or **cooperating**
+  - Independant process may not be affected by other processes
+- 2 models of IPC
+  - Shared memory
+    - Region of memory is shared by cooperating processes
+    - All process read/write data to the shared region
+    - Standard process:
+      - **void* shared_memory = mmap(128);**
+      - **memcpy(shared_memory, message, sizeof(message))**
+  - Message passing (POSIX message queues)
+    - Kernel manages a space of memory, usually as a queue.
+    - **mq_open()** in C
+- **Semaphores**
+  - A signal used to control multiple access to a resource
+  - MUTEX is used for exclusive access to a resource
+  - Semaphore (even binary) should be used for synchronization.
+    - A _turnstile_ allows one person at a time, but cna be locked at any time.
+
+## Process Table
+- Stores information about all currently running processes.
+- Relates PID to PCB.
+- Each PCB maps file descriptors to file pointers, entries in the **file table**
+
 
 # LINUX Users and Permissions and Namespacing
 - Every process gets a User ID
@@ -320,8 +352,19 @@ Process table
   - Look ahead, read more than is requested so subsequent calls read from buffer
 
 ## Directories 
-## inodes
-Directory entries
+
+
+## INODES
+- Disk is divided into equally-sized blocks
+- Files that are too long get broken into multiple INodes
+- Fixed length
+- Stores metadata
+- 12 direct pointers to blocks of data
+- Single indirect pointer points to a block, which contains a table to more addresses
+- Double indirect pointer points to a block, which points to two blocks, which points to more pointers.
+- Map a file to its INODE. /foo/file.txt
+  - inode for / -> data for / -> inode for /foo -> data for /foo -> inode for file.txt
+
 hard vs soft links
 
 
@@ -368,6 +411,10 @@ Job control
 - Attach a socket to your program, just like attaching a mailbox to your house.
 - Bidirectional with stream sockets, unidirectional with datagram sockets
 - /etc/hosts is an internal DNS lookup
+- Sockete example:
+  - SSH daemon opens a socket on the machine on port 22
+  - When the user wants to connect to the server using SSH, the user's SSH client connects to that socket.
+  - Packets may now be exchanged
 what is CURL, wget?
 
 **traceroute()** 
@@ -420,12 +467,13 @@ socket is one end of a network connection.
 **Switch**: Link-layer networking device
 - **ARP**: Address Resolution Protocol
   - Each node gets an ARP table
+  - Relates IP addresses to MAC addresses (Medium Access Control)
 - **Store-forward**
   - Each switch gets a switch table
   - Floods!
 
 TCP windowing
-  
+
 ## Special IP addresses:
 - 127.0.0.1 is _localhost_
 - Privat internets, not publicly routable VIA global internet
@@ -443,13 +491,16 @@ wifi and ethernet protocols
 # Hard Drive and Memory
 
 ## Page Tables
-
 - Maps virtual memory to physical addresses
 - Pages in a program's memory are mapped to portions in RAM and sometimes in hard drive, all over the place.
 - The CPU's Memory Management Unit stores a cache of recently used mappings.
   - Translation Lookaside Buffer (TLB)
 
 ## LINUX Device Files
+- **block** devices communicate by sending entire blocks of data
+  - Hard disks, USBs
+- **Character** devices communicate by sending/receiving single characters
+  - Keyboards
 
 # Web servers
 
