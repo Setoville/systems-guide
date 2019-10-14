@@ -118,7 +118,7 @@
 
 **symlink()** symbolic link. makes a new name for a file.
 
-**stat()**
+**stat()** provides status of a file. (inode information)
 
 ### File Descriptor Operations
 
@@ -180,8 +180,15 @@ interrupts
   - Do not expect user input
   - Strart a process in background using &
   - **Daemons** 
-    - Start at system startup and run forever.
+    - Start at system startup and run forever, in the background.
     - Can be controlled by a user through INIT process
+    - To daemonize a process:
+      - fork()
+      - setsid()
+      - close(0), close(1), close(2).
+      - fork()
+  - **Service**
+    - Application taht runs in the background
 - init process
   - Mother parent of all processes on the system
   - Manages all other processes
@@ -258,14 +265,19 @@ interrupts
 
 
 ## Context Switching and Process Swapping
+- 2 Reasons to context-switch
+  - Multitasking. Usually triggered by I/O.
+  - Interrupt handling. 
+- **Recall:** User to kernel mode switch does not require a context switch.
 - Program counter and Register data in the PCB are updated when a system call or process switch occurs
 - Upon an interrupt or system call:
   - Save the state of the process into the PCB.
   - Re-load state of the new process from its PCB.
 
-How does a signal get sent to a process?
-
-]- Process signal mask
+## Processes and Signals
+- For each process, the OS maintains two integers with bits corresponding to signal numbers.
+- Pending signals and blocked signals.
+- A child created by fork() has an empty pending signal list, initially.
 
 ## Threads
 - When a process runs, it has 1 thread by default
@@ -337,7 +349,7 @@ How does a signal get sent to a process?
   - Write: Can add/remove/rename files.
   - Execute: Can use in file paths. Any system call with this directory NOT AS THE LAST DIRECTORY will fail
   
-# LINUX Files
+# LINUX Files and LINUX filesystem
 
 ## File read, write and descriptors
 - Each file has a file descriptor
@@ -352,10 +364,30 @@ How does a signal get sent to a process?
   - Look ahead, read more than is requested so subsequent calls read from buffer
 
 ## Directories 
+- Another type of file, users cannot update directories directly.
+- Sequence of directory entries. Not sorted
+- Maps file name to file's inode
+- Symbolic links vs Hard links
+  - Deleting a symbolic link does not affect the file.
 
+## File System
+- **I/O control**. Deal with device drivers and interrupt handlers to transfer data.
+  - "read block 1234"
+  - Usually controlled by writing bit pattersn in the I/O controller device file.
+- **Basic File System**. Deal with physical blocks on a disk.
+  - Defined by numerical physical addresses
+  - Drive 0, cylinder 12, track 7, sector 1.
+  - Responsible for buffers and caches
+- **File Organization Module**. Aware of files and logical and physical blocks.
+  - Translates logical block addresses to physical block addresses
+  - Keeps track of free space (unallocated blocks)
+- **Logical File System**. Manages metadata
+  - File system structure, directory structure
+  - File data is maintained in a _File control block_. This is called an INODE.
 
 ## INODES
 - Disk is divided into equally-sized blocks
+- Inodes do NOT store the file name!!
 - Files that are too long get broken into multiple INodes
 - Fixed length
 - Stores metadata
@@ -365,7 +397,6 @@ How does a signal get sent to a process?
 - Map a file to its INODE. /foo/file.txt
   - inode for / -> data for / -> inode for /foo -> data for /foo -> inode for file.txt
 
-hard vs soft links
 
 
 # LINUX Signals (Software Interrupts)
@@ -398,6 +429,8 @@ hard vs soft links
   - No cleanup
 
 Signal handlers can be specified for all signals except **SIGKILL** and **SIGSTOP**.
+
+Process Signal Mask is the collection of signals that are currently blocked.
 
 Nobody really uses signal() anymore. Depricated.
 
@@ -444,6 +477,7 @@ socket is one end of a network connection.
 - _netstat -c_ continuous output for all connections (TCP/UDP)
 - _netstat -a_ for active connections
 - _netstat -at_ for active TCP connections. _-au_ for active UDP connections.
+- _netstat -tulpn_ TCP, UDP, Listening, show PID and program name, N for numeric.
 
 ## LINUX Sockets (Level 4)
 - **Client side**
@@ -460,10 +494,24 @@ socket is one end of a network connection.
 
 # General Networking
 **NAT**: Network Address Translation
-- Allows networks to be hierarchical 
+- Allows networks to be hierarchical
+- Local networks have private IP addresses
+- **Overload (PAT)**
+  - Packet arrives at the border
+  - Router replaces privateIP:Port with the publicIP:Port (same port)
+  - Place entry in the NAT table
+  - Packet returns, NAT table lookup, route to privateIP
+- **Dynamic NAT**
+  - Manually create a pool of public addresses.
+  - Packet arrives, takes first available public address
+  - Packet returns, NAT table lookup
+  - Public address returns to the pool
+- **Static NAT**
+  - Manually enter NAT table.
 **DNS**: Domain Name Server 
 - DNS server holds records of what domains point to what IP addresses
 **Router**: 
+
 **Switch**: Link-layer networking device
 - **ARP**: Address Resolution Protocol
   - Each node gets an ARP table
@@ -471,6 +519,15 @@ socket is one end of a network connection.
 - **Store-forward**
   - Each switch gets a switch table
   - Floods!
+  
+**DHCP**:
+- Assigns unique IP addresses to hosts on a network.
+1. DHCP-Discover. Broadcast to all hosts on the network.
+2. DHCP-Offer. DHCP server, presumably on the network, responds with an IP.
+3. DHCP-Request. Host sends request to lease the address from DHCP server. 
+4. DHCP-ACK. DHCP sends address, subnet mask, default gateway, DNS server.
+- DHCP Server holds a lease time for each IP. They will eventually expire
+- Maps IP addresses to MAC addresses as well. 
 
 TCP windowing
 
@@ -488,7 +545,7 @@ TCP windowing
 
 wifi and ethernet protocols
 
-# Hard Drive and Memory
+# Storage and Memory
 
 ## Page Tables
 - Maps virtual memory to physical addresses
@@ -496,14 +553,122 @@ wifi and ethernet protocols
 - The CPU's Memory Management Unit stores a cache of recently used mappings.
   - Translation Lookaside Buffer (TLB)
 
+## Direct Memory Access (DMA)
+- Hardware unit that assists with transfer between memory and I/O devices.
+- Increment addresses for successive words
+
+## RAID types
+
 ## LINUX Device Files
+- UNIX uses device files to access hardware
+- /dev
 - **block** devices communicate by sending entire blocks of data
   - Hard disks, USBs
+  - Large buffers
 - **Character** devices communicate by sending/receiving single characters
   - Keyboards
+  - Small buffers
 
 # Web servers
 
 # Databases
 
-# LINUX troubleshooting
+## CAP Theorem
+- **Consistency**: Every read is the most recent write, or error.
+- **Availability**: Every read will get a response. No guarantee of correctness.
+- **Partition Tolerance**: System works despite failed network.
+- _C + P_ Waiting for a response from a partition node might not be available, or respond.
+  - Do this if you need atomic read/writes
+- _A + P_ Request will get a response from a partitioned node, but the data may not be correct.
+  - Do this if you ned to respond, or correctness is less important than availability.
+
+## Consistency Patterns
+- **Weak Consistency**: After a write, reads may or may not see it.
+  - Best effort.
+  - VOIP. Video chat.
+- **Eventual Consistency**: After a write, reads will eventually see it.
+  - Asynchronous data replication
+  - Email, DNS.
+- **Strong Consistency**: After a write, all reads will see it.
+  - Synchronous data replication
+  - File systems, transactions, DBMS.
+
+## Replication Patterns
+- **Master-slave replication**
+  - One master, source of truth, replicates to many slaves. 
+  - Clients may read and write from master, but only read from slaves.
+  - Master is often **promoted**
+- **Master-master replication**
+  - More than one master
+  - Clients may read and write from any node
+  - Increased latency for synchronization
+  - Sometimes violates ACID.
+
+## Database Distribution
+- **Federation**
+  - Functional Partitioning
+  - Splits up databases by function. There is no central master to serializa writes.
+- **Sharding**
+  - Splits up data such that each database handles a unique subset of data
+
+- **Denormaliation**
+  - Improve **read** performance by adding additional redundant information
+  - Trades write time for read time
+
+## SQL vs NoSQL
+- **NoSQL**
+
+# Security
+
+# LINUX troubleshooting and debugging
+- when in doubt **man pages**
+- _w_ for who is logged in, what are they doing.
+- _lsof_ lists open files.
+- TMUX: Terminal multiplexing 
+  - long-running commands! we can log out and log back in.
+  - Share shell sessions, 2 people logged in at the same time.
+    - Share a socket file. type together in from 2 terminals.
+
+## Check kernel version
+- _uname_ prints system information
+  - _uname -r_ for release
+  - _uname -v_ for kernel version
+
+## Check the hardware.
+- _ethtool eth0_ tells us settings for eth0.
+  - Speed, duplex, link modes.
+
+## Manage services
+- _systemctl_
+- _ps_ for running processes. 
+  - Look for a process with a given name:
+  - ps | grep nginx
+
+## Check the network.
+- See LINUX Networking
+- _ip_ is newer than _ifconfig_
+1. **ip link** check if your interfaces are up.
+2. **ip address** Know if your interfaces have IP addressing
+  - _ip addr show eth0_ to see information on eth0.
+3. **ping** Know if you have network reachability
+4. **traceroute** Trace route that your network traffic takes.
+- _dig www.google.com_ resolves DNS for google.com
+- Check open ports?
+  - **netstat -tulpn** 
+  - TCP, UDP, Listening, show PID and program name, N for numeric.
+- **ip route** to see route tables. (used to be **route**)
+
+## Check resource usage
+- _top_ tells us currently running processes and CPU/memory usage of each.
+
+## Check storage
+- _df_. **Disk free**. disk space free.
+  - _df -a_ for **all** file system disk spage usage
+  - _df /home_ for information about /home file system.
+  - _df -i_ for information about file systme inodes.
+  - _df -h_ for **human readable**
+- _du_. **Disk use**. Disk space usage.
+  - _du -sh ./amazon_ for disk usage on ./amazon
+
+## Check the logs.
+- _/var/log/_
