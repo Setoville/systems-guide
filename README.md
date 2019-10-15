@@ -368,7 +368,7 @@ interrupts
     - size, block size, size and location of inode tables
   - A request to access any file requires access to the filesystem's superblock.
   - Crucial! Backups are made and linux also maintains a copy of its superblock in memory.
-  - The basic linux filesystem type 
+  - The basic linux filesystem type //TODO
 
 
 ## Directories 
@@ -794,8 +794,62 @@ wifi and ethernet protocols
   - unstructured data
   - Hierarchical data storage.
 
+# UNIX terminals and shells
+- Computer sends text characters to the **terminal character device file**.
+- Interact with a shell process using a terminal.
+- Process puts data in output buffer of the device file, text is sent to terminal by OS. **shared memory**.
+- Process expect to inherit FD=0 is STDIN, FD=1 is STDOUT, with respect to the shell process.
+- **what happens when I ls?**
+1. Shell _forks_ itself
+2. Parent _wait_ for child
+3. Child exec the LS command, passing in the program argument
+
+## Program Arguments 
+- Arguments are passed from **exec** onto the heap.
+- Address and num_args are passed to the first stack frame.
+
+## Redirection
+- Change where process writes stdin, stdout to
+- < *file* closes FD=0, open *file* for reading
+- \> *file* closes FD=1, open *file* for writing
+
+## Piping commandA | commandB
+- STDOUT of A becomes STDIN of B.
+
+1. Runs commandA and commandB in **parallel**
+2. Shell creates a **pipe** (just a file.)
+3. Shell *fork* itself twice
+4. Parent shell *wait* for both children
+5. One child redirects STDOUT to pipe before *exec* first command
+6. Other child redirects STDIN to pipe before *exec* second command
+
+ls -la bin ; cat notes.txt executes 1 after another.
+ls -la bin | less executes at the same time.
+pipelineA && pipelineB. if A returns 0, run B
+pipelineA || pipelineB. if A returns !0, run B.
 
 # Security
+## Namespacing
+- Provides a process with their own system view
+- CGroup:
+  - Each CGroup namespace has its own set of CGroup root directories
+- PID: Process ID
+- NET: Network
+- MNT: Mount
+- UTS: UNIX timesharing system
+- IPC: Interprocess Communication
+  - Isolates IPC resources like message queue.
+- User: Separate user IDs.
+  - A user may be ID=0 in their namespace, but underprivileged in an outside namespace.
+
+## Cgroup
+- Allow processes to be organized into hierarchical groups
+- Usage of various types of resources can be limited and monitors
+- cgroup interface is provided through the pseudo-filesystem cgroupfs.
+- A *subsystem* is a kernel component that modifies the behaviour of the process in a cgroup. *subsystem* is sometimes called a resource controller.
+- 
+
+## Kernel vs User level
 
 # LINUX troubleshooting and debugging
 - when in doubt **man pages**
@@ -834,6 +888,7 @@ wifi and ethernet protocols
   - **netstat -tulpn** 
   - TCP, UDP, Listening, show PID and program name, N for numeric.
 - **ip route** to see route tables. (used to be **route**)
+- IPTABLES. //TODO
 
 ## Check resource usage
 - _top_ tells us currently running processes and CPU/memory usage of each.
