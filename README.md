@@ -518,9 +518,12 @@ socket is one end of a network connection.
   - Manually enter NAT table.
 **DNS**: Domain Name Server 
 - DNS server holds records of what domains point to what IP addresses
-**Router**: 
-
-
+- ISPs have resolver servers that try to resolve.
+- If the resolver server does not resolve, it calls the ROOT server
+- ROOT server directs resolver to a TLD, top level domain server (.com, .net)
+- TLD server directs request to the **Authoritative name server**
+- Name servers know everything about the domain. They know!
+- Resolver stores the IP address in cache
 
 ## Link Layer
 - Flow control: Pacing between adjacent sending/receing nodes
@@ -557,18 +560,72 @@ socket is one end of a network connection.
   - Timer counts down when channel idle
   - Transmit when timer == 0
   - If no ACK, increase random bakcoff interval, repeat sense.
-- **Switch**: Link-layer networking device
-  - **ARP**: Address Resolution Protocol
-    - Each node gets an ARP table
-    - Relates IP addresses to MAC addresses (Medium Access Control)
-  - **Store-forward**
-    - Each switch gets a switch table
-    - Floods!
+
 ### Mac addresses and ARP
 - 32-bit IP address, 48-bit MAC address.
-- **ARP**:
+- MAC addresses are FLAT.
+- **ARP**: Address Resolution Protocol
+  - Each node gets an ARP table
+  - Relates IP addresses to MAC addresses (Medium Access Control)
+  - If MAC_A wants to send a datagram to MAC_B:
+    - Look in ARP table. If not:
+    - MAC_A broadcasts ARP query with B's IP address.
+    - B receives, replies to A.
+    - ARP table in A saves the IP address of B. with expiry.
+- **Switch**: Link-layer networking device
+  - Each switch gets a switch table
+  - Switches are transparent and self-learning
+  - **Store-forward**:
+    - When a frame is received:
+      - Record incoming MAC address!
+      - Look into switch table with MAC dst address.
+      - Forward frame on interface indicated by table entry
+      - If no entry in switch table, FLOOD.
+        - Forward on ALL interfaces except arriving.
+### WLAN (WiFi)
+- **Basic Service Set**
+  - Access Point, Router, Computer
+  - CSMA/CA
+- Access point is a layer-2 device that converts wifi to eth.
+- Modes of Operation of WiFi MAC protocol
+  - Distributed Coordination Function
+    - Handshake mode: Seek permission from receiver before sending a frame
+    - No handshake mode: just send it.
+  - Point Coordination Function
+    - AP is the controller. AP decides who transmits and when
+- Problems with WLAN
+  - **Hidden Terminal Problem**
+    - A collision occurs, but a node cannot detect, because it occurs outside its range.
+    - Solved using CSMA/CA
+  - **Exposed Terminal Problem**
+    - When a node is prevented from sending packets to other nodes because of co-channel interference with a neighboring transmitter
 
-**DHCP**:
+## Network Layer
+- Transport segments from src to dst host
+- Encapsulate segments into datagrams
+- **Forwarding**: Move packets from routers input to routers output
+  - Getting through an intersection
+- **Routing**: Determine route taken by packets from src to dst
+  - Planning trip from src to dst
+- **Buffering** is required when datagrams arrive from fabric faster than transmission rate.
+- **Routers!!**:
+  - Control Plane is responsible for routing and management (software)
+  - Data plane is for forwarding (hardware)
+  - Routers also have an ARP table.
+  - **Routing Table**:
+    - Contains routing information received through routing protocols and configuration
+    - May be more than 1 entry for a given prefix.
+    - A map of every network that router knows how to get to.
+    - **The Longest prefix matching will win.**
+  - **Forwarding table!**:
+    - Computed using routing tables.
+    - 1 defined "best" path for a given prefix.
+  - Allow traffic isolation 
+  - Routers have multiple IP addresses. 1+ for each physical device.
+  - Routing Interface Protocol (RIP), Open Shortest Path First (OSPF), Border Gateway Protocl (BGP)
+
+
+**DHCP: Dynamic host configuration protocol**:
 - Assigns unique IP addresses to hosts on a network.
 1. DHCP-Discover. Broadcast to all hosts on the network.
 2. DHCP-Offer. DHCP server, presumably on the network, responds with an IP.
